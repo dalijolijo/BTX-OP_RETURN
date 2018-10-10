@@ -1,6 +1,6 @@
 # send-OP_RETURN.py
 # 
-# CLI wrapper for OP_RETURN.py to send bitcoin with OP_RETURN metadata
+# CLI wrapper for OP_RETURN.py to send bitcore with OP_RETURN metadata
 #
 # Copyright (c) Coin Sciences Ltd
 # 

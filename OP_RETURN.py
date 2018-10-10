@@ -1,6 +1,6 @@
 # OP_RETURN.py
 #
-# Python script to generate and retrieve OP_RETURN bitcoin transactions
+# Python script to generate and retrieve OP_RETURN bitcore transactions
 #
 # Copyright (c) Coin Sciences Ltd
 #
@@ -36,24 +36,24 @@ except NameError:
   
 # User-defined quasi-constants
 
-OP_RETURN_BITCOIN_IP='127.0.0.1' # IP address of your bitcoin node
-OP_RETURN_BITCOIN_USE_CMD=False # use command-line instead of JSON-RPC?
+OP_RETURN_BITCORE_IP='127.0.0.1' # IP address of your bitcore node
+OP_RETURN_BITCORE_USE_CMD=False # use command-line instead of JSON-RPC?
 
-if OP_RETURN_BITCOIN_USE_CMD:
-	OP_RETURN_BITCOIN_PATH='/usr/bin/bitcoin-cli' # path to bitcoin-cli executable on this server
+if OP_RETURN_BITCORE_USE_CMD:
+	OP_RETURN_BITCORE_PATH='/usr/bin/bitcore-cli' # path to bitcore-cli executable on this server
 	
 else:
-	OP_RETURN_BITCOIN_PORT='' # leave empty to use default port for mainnet/testnet
-	OP_RETURN_BITCOIN_USER='' # leave empty to read from ~/.bitcoin/bitcoin.conf (Unix only)
-	OP_RETURN_BITCOIN_PASSWORD='' # leave empty to read from ~/.bitcoin/bitcoin.conf (Unix only)
+	OP_RETURN_BITCORE_PORT='' # leave empty to use default port for mainnet/testnet
+	OP_RETURN_BITCORE_USER='' # leave empty to read from ~/.bitcore/bitcore.conf (Unix only)
+	OP_RETURN_BITCORE_PASSWORD='' # leave empty to read from ~/.bitcore/bitcore.conf (Unix only)
 	
-OP_RETURN_BTC_FEE=0.0001 # BTC fee to pay per transaction
-OP_RETURN_BTC_DUST=0.00001 # omit BTC outputs smaller than this
+OP_RETURN_BTX_FEE=0.0001 # BTX fee to pay per transaction
+OP_RETURN_BTX_DUST=0.00001 # omit BTX outputs smaller than this
 
-OP_RETURN_MAX_BYTES=80 # maximum bytes in an OP_RETURN (80 as of Bitcoin 0.11)
+OP_RETURN_MAX_BYTES=80 # maximum bytes in an OP_RETURN (80 as of Bitcore 0.11)
 OP_RETURN_MAX_BLOCKS=10 # maximum number of blocks to try when retrieving data
 
-OP_RETURN_NET_TIMEOUT=10 # how long to time out (in seconds) when communicating with bitcoin node
+OP_RETURN_NET_TIMEOUT=10 # how long to time out (in seconds) when communicating with bitcore node
 
 
 # User-facing functions
@@ -61,10 +61,10 @@ OP_RETURN_NET_TIMEOUT=10 # how long to time out (in seconds) when communicating 
 def OP_RETURN_send(send_address, send_amount, metadata, testnet=False):
 	# Validate some parameters
 	
-	if not OP_RETURN_bitcoin_check(testnet):
-		return {'error': 'Please check Bitcoin Core is running and OP_RETURN_BITCOIN_* constants are set correctly'}
+	if not OP_RETURN_bitcore_check(testnet):
+		return {'error': 'Please check Bitcore Core is running and OP_RETURN_BITCORE_* constants are set correctly'}
 
-	result=OP_RETURN_bitcoin_cmd('validateaddress', testnet, send_address)
+	result=OP_RETURN_bitcore_cmd('validateaddress', testnet, send_address)
 	if not ('isvalid' in result and result['isvalid']):
 		return {'error': 'Send address could not be validated: '+send_address}
 	
@@ -81,7 +81,7 @@ def OP_RETURN_send(send_address, send_amount, metadata, testnet=False):
 	
 	# Calculate amounts and choose inputs
 
-	output_amount=send_amount+OP_RETURN_BTC_FEE
+	output_amount=send_amount+OP_RETURN_BTX_FEE
 
 	inputs_spend=OP_RETURN_select_inputs(output_amount, testnet)
 	
@@ -92,11 +92,11 @@ def OP_RETURN_send(send_address, send_amount, metadata, testnet=False):
 
 	# Build the raw transaction
 		
-	change_address=OP_RETURN_bitcoin_cmd('getrawchangeaddress', testnet)
+	change_address=OP_RETURN_bitcore_cmd('getrawchangeaddress', testnet)
 	
 	outputs={send_address: send_amount}
 	
-	if change_amount>=OP_RETURN_BTC_DUST:
+	if change_amount>=OP_RETURN_BTX_DUST:
 		outputs[change_address]=change_amount
 		
 	raw_txn=OP_RETURN_create_txn(inputs_spend['inputs'], outputs, metadata, len(outputs), testnet)
@@ -113,8 +113,8 @@ def OP_RETURN_store(data, testnet=False):
 
 	# Validate parameters and get change address
 
-	if not OP_RETURN_bitcoin_check(testnet):
-		return {'error': 'Please check Bitcoin Core is running and OP_RETURN_BITCOIN_* constants are set correctly'}
+	if not OP_RETURN_bitcore_check(testnet):
+		return {'error': 'Please check Bitcore Core is running and OP_RETURN_BITCORE_* constants are set correctly'}
 		
 	if isinstance(data, basestring):
 		data=data.encode('utf-8') # convert to binary string
@@ -123,11 +123,11 @@ def OP_RETURN_store(data, testnet=False):
 	if data_len==0:
 		return {'error': 'Some data is required to be stored'}
 
-	change_address=OP_RETURN_bitcoin_cmd('getrawchangeaddress', testnet)
+	change_address=OP_RETURN_bitcore_cmd('getrawchangeaddress', testnet)
 	
 	# Calculate amounts and choose first inputs to use
 
-	output_amount=OP_RETURN_BTC_FEE*int((data_len+OP_RETURN_MAX_BYTES-1)/OP_RETURN_MAX_BYTES) # number of transactions required
+	output_amount=OP_RETURN_BTX_FEE*int((data_len+OP_RETURN_MAX_BYTES-1)/OP_RETURN_MAX_BYTES) # number of transactions required
 	
 	inputs_spend=OP_RETURN_select_inputs(output_amount, testnet)
 	if 'error' in inputs_spend:
@@ -138,8 +138,8 @@ def OP_RETURN_store(data, testnet=False):
 
 	# Find the current blockchain height and mempool txids
 
-	height=int(OP_RETURN_bitcoin_cmd('getblockcount', testnet))
-	avoid_txids=OP_RETURN_bitcoin_cmd('getrawmempool', testnet)
+	height=int(OP_RETURN_bitcore_cmd('getblockcount', testnet))
+	avoid_txids=OP_RETURN_bitcore_cmd('getrawmempool', testnet)
 
 	# Loop to build and send transactions
 
@@ -149,13 +149,13 @@ def OP_RETURN_store(data, testnet=False):
 		# Some preparation for this iteration
 	
 		last_txn=((data_ptr+OP_RETURN_MAX_BYTES)>=data_len) # is this the last tx in the chain?
-		change_amount=input_amount-OP_RETURN_BTC_FEE
+		change_amount=input_amount-OP_RETURN_BTX_FEE
 		metadata=data[data_ptr:data_ptr+OP_RETURN_MAX_BYTES]
 			
 		# Build and send this transaction
 	
 		outputs={}
-		if change_amount>=OP_RETURN_BTC_DUST: # might be skipped for last transaction
+		if change_amount>=OP_RETURN_BTX_DUST: # might be skipped for last transaction
 			outputs[change_address]=change_amount
 			
 		raw_txn=OP_RETURN_create_txn(inputs, outputs, metadata, len(outputs) if last_txn else 0, testnet)
@@ -188,12 +188,12 @@ def OP_RETURN_store(data, testnet=False):
 
 
 def OP_RETURN_retrieve(ref, max_results=1, testnet=False):
-	# Validate parameters and get status of Bitcoin Core
+	# Validate parameters and get status of Bitcore Core
 
-	if not OP_RETURN_bitcoin_check(testnet):
-		return {'error': 'Please check Bitcoin Core is running and OP_RETURN_BITCOIN_* constants are set correctly'}
+	if not OP_RETURN_bitcore_check(testnet):
+		return {'error': 'Please check Bitcore Core is running and OP_RETURN_BITCORE_* constants are set correctly'}
 		
-	max_height=int(OP_RETURN_bitcoin_cmd('getblockcount', testnet))
+	max_height=int(OP_RETURN_bitcore_cmd('getblockcount', testnet))
 	heights=OP_RETURN_get_ref_heights(ref, max_height)
 	
 	if not isinstance(heights, list):
@@ -299,7 +299,7 @@ def OP_RETURN_retrieve(ref, max_results=1, testnet=False):
 def OP_RETURN_select_inputs(total_amount, testnet):
 	# List and sort unspent inputs by priority
 
-	unspent_inputs=OP_RETURN_bitcoin_cmd('listunspent', testnet, 0)		
+	unspent_inputs=OP_RETURN_bitcore_cmd('listunspent', testnet, 0)		
 	if not isinstance(unspent_inputs, list):
 		return {'error': 'Could not retrieve list of unspent inputs'}
 		
@@ -329,7 +329,7 @@ def OP_RETURN_select_inputs(total_amount, testnet):
 
 
 def OP_RETURN_create_txn(inputs, outputs, metadata, metadata_pos, testnet):
-	raw_txn=OP_RETURN_bitcoin_cmd('createrawtransaction', testnet, inputs, outputs)
+	raw_txn=OP_RETURN_bitcore_cmd('createrawtransaction', testnet, inputs, outputs)
 	
 	txn_unpacked=OP_RETURN_unpack_txn(OP_RETURN_hex_to_bin(raw_txn))
 	
@@ -353,11 +353,11 @@ def OP_RETURN_create_txn(inputs, outputs, metadata, metadata_pos, testnet):
 
 
 def OP_RETURN_sign_send_txn(raw_txn, testnet):
-	signed_txn=OP_RETURN_bitcoin_cmd('signrawtransaction', testnet, raw_txn)
+	signed_txn=OP_RETURN_bitcore_cmd('signrawtransaction', testnet, raw_txn)
 	if not ('complete' in signed_txn and signed_txn['complete']):
 		return {'error': 'Could not sign the transaction'}
 	
-	send_txid=OP_RETURN_bitcoin_cmd('sendrawtransaction', testnet, signed_txn['hex'])
+	send_txid=OP_RETURN_bitcore_cmd('sendrawtransaction', testnet, signed_txn['hex'])
 	if not (isinstance(send_txid, basestring) and len(send_txid)==64):
 		return {'error': 'Could not send the transaction'}
 	
@@ -365,11 +365,11 @@ def OP_RETURN_sign_send_txn(raw_txn, testnet):
 
 
 def OP_RETURN_list_mempool_txns(testnet):
-	return OP_RETURN_bitcoin_cmd('getrawmempool', testnet)
+	return OP_RETURN_bitcore_cmd('getrawmempool', testnet)
 
 
 def OP_RETURN_get_mempool_txn(txid, testnet):
-	raw_txn=OP_RETURN_bitcoin_cmd('getrawtransaction', testnet, txid)
+	raw_txn=OP_RETURN_bitcore_cmd('getrawtransaction', testnet, txid)
 	return OP_RETURN_unpack_txn(OP_RETURN_hex_to_bin(raw_txn))
 
 
@@ -384,12 +384,12 @@ def OP_RETURN_get_mempool_txns(testnet):
 	
 
 def OP_RETURN_get_raw_block(height, testnet):
-	block_hash=OP_RETURN_bitcoin_cmd('getblockhash', testnet, height)
+	block_hash=OP_RETURN_bitcore_cmd('getblockhash', testnet, height)
 	if not (isinstance(block_hash, basestring) and len(block_hash)==64):
 		return {'error': 'Block at height '+str(height)+' not found'}
 	
 	return {
-		'block': OP_RETURN_hex_to_bin(OP_RETURN_bitcoin_cmd('getblock', testnet, block_hash, False))
+		'block': OP_RETURN_hex_to_bin(OP_RETURN_bitcore_cmd('getblock', testnet, block_hash, False))
 	}
 
 
@@ -403,17 +403,17 @@ def OP_RETURN_get_block_txns(height, testnet):
 	return block['txs']
 
 
-# Talking to bitcoin-cli
+# Talking to bitcore-cli
 
-def OP_RETURN_bitcoin_check(testnet):
-	info=OP_RETURN_bitcoin_cmd('getinfo', testnet)
+def OP_RETURN_bitcore_check(testnet):
+	info=OP_RETURN_bitcore_cmd('getinfo', testnet)
 	
 	return isinstance(info, dict) and 'balance' in info
 
 
-def OP_RETURN_bitcoin_cmd(command, testnet, *args): # more params are read from here
-	if OP_RETURN_BITCOIN_USE_CMD:
-		sub_args=[OP_RETURN_BITCOIN_PATH]
+def OP_RETURN_bitcore_cmd(command, testnet, *args): # more params are read from here
+	if OP_RETURN_BITCORE_USE_CMD:
+		sub_args=[OP_RETURN_BITCORE_PATH]
 		if testnet:
 			sub_args.append('-testnet')
 		
@@ -436,12 +436,12 @@ def OP_RETURN_bitcoin_cmd(command, testnet, *args): # more params are read from 
 			'params': args,
 		}
 		
-		port=OP_RETURN_BITCOIN_PORT
-		user=OP_RETURN_BITCOIN_USER
-		password=OP_RETURN_BITCOIN_PASSWORD
+		port=OP_RETURN_BITCORE_PORT
+		user=OP_RETURN_BITCORE_USER
+		password=OP_RETURN_BITCORE_PASSWORD
 		
 		if not (len(port) and len(user) and len(password)):
-			conf_lines=open(os.path.expanduser('~')+'/.bitcoin/bitcoin.conf').readlines()
+			conf_lines=open(os.path.expanduser('~')+'/.bitcore/bitcore.conf').readlines()
 			
 			for conf_line in conf_lines:
 				parts=conf_line.strip().split('=', 1) # up to 2 parts
@@ -454,12 +454,12 @@ def OP_RETURN_bitcoin_cmd(command, testnet, *args): # more params are read from 
 					password=parts[1]
 		
 		if not len(port):
-			port=18332 if testnet else 8332
+			port=50332 if testnet else 8556
 			
 		if not (len(user) and len(password)):
 			return None # no point trying in this case
 		
-		url='http://'+OP_RETURN_BITCOIN_IP+':'+str(port)+'/'
+		url='http://'+OP_RETURN_BITCORE_IP+':'+str(port)+'/'
 		
 		try:
 			from urllib2 import HTTPPasswordMgrWithDefaultRealm, HTTPBasicAuthHandler, build_opener, install_opener, urlopen
@@ -601,7 +601,7 @@ def OP_RETURN_match_ref_txid(ref, txid):
 	return txid_part==txid_match # exact binary comparison
 
 
-# Unpacking and packing bitcoin blocks and transactions	
+# Unpacking and packing bitcore blocks and transactions	
 
 def OP_RETURN_unpack_block(binary):
 	buffer=OP_RETURN_buffer(binary)
@@ -766,7 +766,7 @@ def OP_RETURN_pack_uint64(integer):
 	return struct.pack('<L', lower)+struct.pack('<L', upper)
 
 
-# Helper class for unpacking bitcoin binary data
+# Helper class for unpacking bitcore binary data
 
 class OP_RETURN_buffer():
 
