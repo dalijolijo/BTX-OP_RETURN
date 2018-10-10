@@ -35,17 +35,16 @@ except NameError:
 	
   
 # User-defined quasi-constants
-
 OP_RETURN_BITCORE_IP='127.0.0.1' # IP address of your bitcore node
 OP_RETURN_BITCORE_USE_CMD=False # use command-line instead of JSON-RPC?
 
 if OP_RETURN_BITCORE_USE_CMD:
-	OP_RETURN_BITCORE_PATH='/usr/bin/bitcore-cli' # path to bitcore-cli executable on this server
+	OP_RETURN_BITCORE_PATH='/usr/local/bin/bitcore-cli' # path to bitcore-cli executable on this server
 	
 else:
-	OP_RETURN_BITCORE_PORT='' # leave empty to use default port for mainnet/testnet
-	OP_RETURN_BITCORE_USER='' # leave empty to read from ~/.bitcore/bitcore.conf (Unix only)
-	OP_RETURN_BITCORE_PASSWORD='' # leave empty to read from ~/.bitcore/bitcore.conf (Unix only)
+	OP_RETURN_BITCORE_PORT='20001' # leave empty to use default port for mainnet/testnet
+	OP_RETURN_BITCORE_USER='admin1' # leave empty to read from ~/.bitcore/bitcore.conf (Unix only)
+	OP_RETURN_BITCORE_PASSWORD='123' # leave empty to read from ~/.bitcore/bitcore.conf (Unix only)
 	
 OP_RETURN_BTX_FEE=0.0001 # BTX fee to pay per transaction
 OP_RETURN_BTX_DUST=0.00001 # omit BTX outputs smaller than this
@@ -441,8 +440,7 @@ def OP_RETURN_bitcore_cmd(command, testnet, *args): # more params are read from 
 		password=OP_RETURN_BITCORE_PASSWORD
 		
 		if not (len(port) and len(user) and len(password)):
-			conf_lines=open(os.path.expanduser('~')+'/.bitcore/bitcore.conf').readlines()
-			
+			conf_lines=open(os.path.expanduser('~')+'/bitcore-testnet-box/1/bitcore.conf').readlines()
 			for conf_line in conf_lines:
 				parts=conf_line.strip().split('=', 1) # up to 2 parts
 				
@@ -454,7 +452,8 @@ def OP_RETURN_bitcore_cmd(command, testnet, *args): # more params are read from 
 					password=parts[1]
 		
 		if not len(port):
-			port=50332 if testnet else 8556
+			port=50332 if testnet else 8556 #28332 50332
+			#port=50332 if testnet else 8556
 			
 		if not (len(user) and len(password)):
 			return None # no point trying in this case
